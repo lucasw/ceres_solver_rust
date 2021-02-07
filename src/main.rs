@@ -11,6 +11,7 @@ mod ffi {
         // "extern function with generic parameters is not supported yet"
         // fn evaluate<T>(val: T) -> T;
         fn evaluate(val: f64) -> f64;
+        fn evaluate_raw_jet(val: f64, val_v: &[f64; 1], residual: &mut f64, residual_v: &mut [f64; 1]);
     }
 
     // C++ types and signatures exposed to Rust.
@@ -26,10 +27,16 @@ mod ffi {
     }
 }
 
-// TODO(lucasw) how to receive a C++ Jet into this?
 pub fn evaluate(val: f64) -> f64 {
-    let residual = 12.3 - val;
+    let residual = 15.31 - val;
     residual
+}
+
+pub fn evaluate_raw_jet(val: f64, val_v: &[f64; 1], residual: &mut f64, residual_v: &mut [f64; 1]) {
+    *residual = 15.31 - val;
+    *residual_v = *val_v;
+    residual_v[0] *= 0.9;
+    println!("rust x {}, {:?} -> residual {}, {:?}", val, val_v, residual, residual_v);
 }
 
 fn main() {

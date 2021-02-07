@@ -47,10 +47,18 @@ class CeresExample::impl {
       return true;
     }
 
-    template <typename T, int N>
-    bool operator()(const ceres::Jet<T, N>* const x, ceres::Jet<T, N>* residual) const {
-      residual[0].a = evaluate(x[0].a);
-      residual[0].v = x[0].v;
+    // template <typename T, int N>
+    // bool operator()(const ceres::Jet<T, N>* const x, ceres::Jet<T, N>* residual) const {
+    template <int N>
+    bool operator()(const ceres::Jet<double, N>* const x, ceres::Jet<double, N>* residual) const {
+      // residual[0].a = evaluate(x[0].a);
+      // evaluate_raw_jet(N, x[0].a, x[0].v.data(), residual[0].a, residual[0].v.data());
+      // rust::Slice<const double> x_v{x[0].v.data(), N};
+      const std::array<double, N> x_v = *reinterpret_cast<const std::array<double, N>*>(x[0].v.data());
+      // rust::Slice<double> residual_v{residual[0].v.data(), N};
+      std::array<double, N>* residual_v = reinterpret_cast<std::array<double, N>*>(residual[0].v.data());
+      evaluate_raw_jet(x[0].a, x_v, residual[0].a, *residual_v);
+      std::cout << "C++ val " << x[0] << " " << residual[0] << ", length " << N << "\n";
       return true;
     }
 
