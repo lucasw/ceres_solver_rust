@@ -2,6 +2,7 @@
 // 2020-2021
 
 mod jet;
+mod trajectory;
 
 use jet::Jet;
 use nalgebra::U1;
@@ -56,7 +57,7 @@ pub fn evaluate_raw_jet(
     // println!("rust x {:?} -> residual {:?}", val, residual);
 }
 
-fn main() {
+fn simple_example() {
     let j0 = Jet::new(2.5, 0.1, U1);
     println!("jet {:?}", j0);
 
@@ -85,4 +86,28 @@ fn main() {
     let start = Instant::now();
     ceres_example.run_numeric(&vals);
     println!("elapsed {:?}", start.elapsed());
+}
+
+fn main() {
+    // simple_example();
+    let start = trajectory::WayPoint {
+        time: 0.0,
+        position: 1.0,
+        velocity: -1.0,
+        acceleration: 0.5,
+        jerk: 0.0,
+    };
+
+    /*
+    let target = trajectory::WayPoint {
+        time: 1.0,
+        position: 4.0,
+        velocity: 0.0,
+        acceleration: 0.0,
+        jerk: 0.0,
+    };
+    */
+
+    let mut waypoints = vec![start; 21];
+    trajectory::generate(start, start.time + 1.0, &mut waypoints);
 }
