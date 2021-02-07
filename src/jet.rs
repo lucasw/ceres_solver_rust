@@ -158,13 +158,14 @@ use nalgebra::allocator::Allocator;
 use nalgebra::storage::Owned;
 use nalgebra::{DefaultAllocator, DimName, MatrixMN, Scalar, U1};
 use num::traits::{One, Zero};
-use simba::scalar::{ClosedAdd, ClosedDiv, ClosedMul, ClosedNeg, ClosedSub};
+use simba::scalar::{ClosedAdd, ClosedMul, ClosedSub};
 use std::fmt::Debug;
 use std::ops;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Jet<T: Scalar + Zero + One + ClosedAdd + ClosedSub + ClosedMul, N: DimName>
-    where DefaultAllocator: Allocator<T, N, U1>,
+where
+    DefaultAllocator: Allocator<T, N, U1>,
     Owned<T, N>: Copy,
 {
     // The scalar part.
@@ -175,21 +176,19 @@ pub struct Jet<T: Scalar + Zero + One + ClosedAdd + ClosedSub + ClosedMul, N: Di
 }
 
 impl<T: Scalar + Scalar + Zero + One + ClosedAdd + ClosedSub, N: DimName> Jet<T, N>
-    where
-        DefaultAllocator: Allocator<T, N, U1>,
-        Owned<T, N>: Copy,
-        T: Copy + ops::MulAssign,
+where
+    DefaultAllocator: Allocator<T, N, U1>,
+    Owned<T, N>: Copy,
+    T: Copy + ops::MulAssign,
 {
-    pub fn new(a_val: T, v_val: T, n: N) -> Jet<T, N>
-    {
+    pub fn new(a_val: T, v_val: T, n: N) -> Jet<T, N> {
         Jet {
             a: a_val,
             v: MatrixMN::repeat_generic(n, U1, v_val),
         }
     }
 
-    pub fn from_vec(a_val: T, v_val: &[T], n: N) -> Jet<T, N>
-    {
+    pub fn from_vec(a_val: T, v_val: &[T], n: N) -> Jet<T, N> {
         Jet {
             a: a_val,
             v: MatrixMN::from_vec_generic(n, U1, v_val.to_vec()),
@@ -204,10 +203,10 @@ impl<T: Scalar + Scalar + Zero + One + ClosedAdd + ClosedSub, N: DimName> Jet<T,
 
 // TODO(lucasw) replace these with macro
 impl<T: Scalar + ClosedMul + Copy, N: DimName> ops::Mul for Jet<T, N>
-    where
-        DefaultAllocator: Allocator<T, N, U1>,
-        T: std::ops::Mul<Output = T> + Zero + One + ClosedAdd + ClosedSub + ClosedMul,
-        Owned<T, N>: Copy,
+where
+    DefaultAllocator: Allocator<T, N, U1>,
+    T: std::ops::Mul<Output = T> + Zero + One + ClosedAdd + ClosedSub + ClosedMul,
+    Owned<T, N>: Copy,
 {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
@@ -219,10 +218,10 @@ impl<T: Scalar + ClosedMul + Copy, N: DimName> ops::Mul for Jet<T, N>
 }
 
 impl<T: Scalar, N: DimName> ops::Add for Jet<T, N>
-    where
-        DefaultAllocator: Allocator<T, N, U1>,
-        T: std::ops::Add<Output = T> + Zero + One + ClosedAdd + ClosedSub + ClosedMul,
-        Owned<T, N>: Copy,
+where
+    DefaultAllocator: Allocator<T, N, U1>,
+    T: std::ops::Add<Output = T> + Zero + One + ClosedAdd + ClosedSub + ClosedMul,
+    Owned<T, N>: Copy,
 {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
@@ -234,10 +233,10 @@ impl<T: Scalar, N: DimName> ops::Add for Jet<T, N>
 }
 
 impl<T: Scalar, N: DimName> ops::Sub for Jet<T, N>
-    where
-        DefaultAllocator: Allocator<T, N, U1>,
-        T: std::ops::Sub<Output = T> + Zero + One + ClosedAdd + ClosedSub + ClosedMul,
-        Owned<T, N>: Copy,
+where
+    DefaultAllocator: Allocator<T, N, U1>,
+    T: std::ops::Sub<Output = T> + Zero + One + ClosedAdd + ClosedSub + ClosedMul,
+    Owned<T, N>: Copy,
 {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {

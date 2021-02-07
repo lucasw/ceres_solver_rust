@@ -5,7 +5,7 @@ mod jet;
 
 use jet::Jet;
 use nalgebra::U1;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 #[cxx::bridge(namespace = "org::ceres_example")]
 mod ffi {
@@ -13,7 +13,12 @@ mod ffi {
         // "extern function with generic parameters is not supported yet"
         // fn evaluate<T>(val: T) -> T;
         fn evaluate(val: f64) -> f64;
-        fn evaluate_raw_jet(val_a: f64, val_v: &[f64; 1], residual_a: &mut f64, residual_v: &mut [f64; 1]);
+        fn evaluate_raw_jet(
+            val_a: f64,
+            val_v: &[f64; 1],
+            residual_a: &mut f64,
+            residual_v: &mut [f64; 1],
+        );
     }
 
     // C++ types and signatures exposed to Rust.
@@ -36,7 +41,12 @@ pub fn evaluate(val: f64) -> f64 {
     residual
 }
 
-pub fn evaluate_raw_jet(val_a: f64, val_v: &[f64; 1], residual_a: &mut f64, residual_v: &mut [f64; 1]) {
+pub fn evaluate_raw_jet(
+    val_a: f64,
+    val_v: &[f64; 1],
+    residual_a: &mut f64,
+    residual_v: &mut [f64; 1],
+) {
     let target = Jet::new(15.31, 0.0, U1);
     let val = Jet::from_vec(val_a, val_v, U1);
     let residual = target - val;
