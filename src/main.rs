@@ -90,24 +90,6 @@ fn simple_example() {
 
 fn main() {
     // simple_example();
-    let start = trajectory::WayPoint {
-        time: 0.0,
-        position: 1.0,
-        velocity: -1.0,
-        acceleration: 0.5,
-        jerk: 0.0,
-    };
 
-    /*
-    let target = trajectory::WayPoint {
-        time: 1.0,
-        position: 4.0,
-        velocity: 0.0,
-        acceleration: 0.0,
-        jerk: 0.0,
-    };
-    */
-
-    let mut waypoints = vec![start; 21];
-    trajectory::generate(start, start.time + 1.0, &mut waypoints);
+    trajectory::test_generate();
 }
