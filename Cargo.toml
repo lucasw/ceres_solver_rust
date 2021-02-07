@@ -7,6 +7,9 @@ edition = "2018"
 [dependencies]
 cxx = "1.0"
 nalgebra = "0.24.1"
+num = "0.3"
+# simba          = { version = "0.3", default-features = false }
+simba = "0.3"
 
 [build-dependencies]
 cxx-build = "1.0"

@@ -39,9 +39,21 @@ class CeresExample::impl {
       // commonality on the rust side between using Jet and double- the whole point is to be able to
       // write a native rust function once with regular math operations and then use it both in pure rust
       // and for ceres.
+
+      // TODO(lucasw) need to detect that T is a C++ Jet, then change it into simpler type
+      // that is just a plain double for the Scalar and array of doubles for the infinitesimal part
+      // or can overload Jet below
       residual[0] = evaluate(x[0]);
       return true;
     }
+
+    template <typename T, int N>
+    bool operator()(const ceres::Jet<T, N>* const x, ceres::Jet<T, N>* residual) const {
+      residual[0].a = evaluate(x[0].a);
+      residual[0].v = x[0].v;
+      return true;
+    }
+
   };
 
 };
@@ -57,10 +69,6 @@ void CeresExample::run(const rust::Vec<double>& vals) const {
 // void CeresExample::run(const rust::Vec<T>& vals) const {
   // The variable to solve for with its initial value.
   // TODO(lucasw) pass in initial_x
-  double x = vals[0];
-
-  // Build the problem.
-  ceres::Problem problem;
 
   // Set up the only cost function (also known as residual). This uses
   // auto-differentiation to obtain the derivative (jacobian).
@@ -71,30 +79,49 @@ void CeresExample::run(const rust::Vec<double>& vals) const {
 */
 
   // presumably this is a little slower than autodifferentation for some problems
-  ceres::CostFunction* cost_function =
-      new ceres::NumericDiffCostFunction<CeresExample::impl::RustCostFunctor, ceres::FORWARD, 1, 1>(
-          new CeresExample::impl::RustCostFunctor);
 
-  // Need and evaluate that takes a Jet for this to work, and for that need to have rust be able to use
-  // Jet
-  /*
-  ceres::CostFunction* cost_function =
-      new ceres::AutoDiffCostFunction<CeresExample::impl::RustCostFunctor, 1, 1>(
-          new CeresExample::impl::RustCostFunctor);
-  */
 
-  problem.AddResidualBlock(cost_function, nullptr, &x);
+  // Build the problem.
+  ceres::Problem problem;
+  {
+    double x = vals[0];
+    std::cout << "\nnumeric diff\n";
+    ceres::CostFunction* cost_function =
+        new ceres::NumericDiffCostFunction<CeresExample::impl::RustCostFunctor, ceres::FORWARD, 1, 1>(
+            new CeresExample::impl::RustCostFunctor);
 
-  // Run the solver!
-  ceres::Solver::Options options;
-  options.linear_solver_type = ceres::DENSE_QR;
-  options.minimizer_progress_to_stdout = true;
-  ceres::Solver::Summary summary;
-  ceres::Solve(options, &problem, &summary);
+    problem.AddResidualBlock(cost_function, nullptr, &x);
 
-  std::cout << summary.BriefReport() << "\n";
-  std::cout << "x : " << vals[0]
-            << " -> " << x << "\n";
+    ceres::Solver::Options options;
+    options.linear_solver_type = ceres::DENSE_QR;
+    options.minimizer_progress_to_stdout = true;
+    ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+
+    std::cout << summary.BriefReport() << "\n";
+    std::cout << "x : " << vals[0]
+              << " -> " << x << "\n";
+  }
+
+  {
+    double x = vals[0];
+    std::cout << "\nauto diff\n";
+    ceres::CostFunction* cost_function =
+        new ceres::AutoDiffCostFunction<CeresExample::impl::RustCostFunctor, 1, 1>(
+            new CeresExample::impl::RustCostFunctor);
+
+    problem.AddResidualBlock(cost_function, nullptr, &x);
+
+    ceres::Solver::Options options;
+    options.linear_solver_type = ceres::DENSE_QR;
+    options.minimizer_progress_to_stdout = true;
+    ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+
+    std::cout << summary.BriefReport() << "\n";
+    std::cout << "x : " << vals[0]
+              << " -> " << x << "\n";
+  }
 }
 
 std::unique_ptr<CeresExample> new_ceres_example() {

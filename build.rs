@@ -19,7 +19,7 @@ fn main() {
         // above?
         .flag("-I")
         .flag("/usr/include/eigen3")
-        .flag_if_supported("-std=c++14")
+        .flag_if_supported("-std=c++17")
         .compile("ceres_example");
 
     println!("cargo:rustc-link-lib=ceres");

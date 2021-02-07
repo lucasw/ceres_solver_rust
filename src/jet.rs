@@ -157,12 +157,13 @@
 use nalgebra::allocator::Allocator;
 use nalgebra::storage::Owned;
 use nalgebra::{DefaultAllocator, DimName, MatrixMN, Scalar, U1};
-// use num_traits::Zero;
+use num::traits::{One, Zero};
+use simba::scalar::{ClosedAdd, ClosedDiv, ClosedMul, ClosedNeg, ClosedSub};
 use std::fmt::Debug;
 use std::ops;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Jet<T: Scalar, N: DimName>
+pub struct Jet<T: Scalar + Zero + One + ClosedAdd + ClosedMul, N: DimName>
     where DefaultAllocator: Allocator<T, N, U1>,
     Owned<T, N>: Copy,
 {
@@ -173,10 +174,11 @@ pub struct Jet<T: Scalar, N: DimName>
     pub v: MatrixMN<T, N, U1>,
 }
 
-impl<T: Scalar, N: DimName> Jet<T, N>
+impl<T: Scalar + Scalar + Zero + One + ClosedAdd, N: DimName> Jet<T, N>
     where
         DefaultAllocator: Allocator<T, N, U1>,
         Owned<T, N>: Copy,
+        T: ops::MulAssign,
 {
     pub fn new(default_val: T, v_val: T, n: N) -> Jet<T, N>
     {
@@ -187,50 +189,33 @@ impl<T: Scalar, N: DimName> Jet<T, N>
     }
 }
 
-impl<N: DimName> ops::Mul for Jet<f64, N>
+// TODO(lucasw) replace these with macro
+impl<T: Scalar + ClosedMul + Copy, N: DimName> ops::Mul for Jet<T, N>
     where
-        DefaultAllocator: Allocator<f64, N, U1>, f64: std::ops::Mul<Output = f64>,
-        Owned<f64, N>: Copy,
+        DefaultAllocator: Allocator<T, N, U1>,
+        T: std::ops::Mul<Output = T> + Zero + One + ClosedAdd + ClosedMul,
+        Owned<T, N>: Copy,  // + ClosedAdd,
 {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
         Self {
             a: self.a * rhs.a,
-            v: self.a * rhs.v + self.v * rhs.a,
+            v: (rhs.v * self.a) + (self.v * rhs.a),
         }
     }
 }
-
-// TODO(lucasw) want to have T here instead of hard-coded f64 above, but it isn't working
-// because maybe 'Scalar' isn't necessarily multipliable with a Matrix.  If
-// the Mul for Matrix could be found it would show what to do, seems like the compiler
-// could suggest it automatically.
-/*
-impl<T: Scalar, N: DimName> ops::Mul for Jet<T, N>
-    where
-        DefaultAllocator: Allocator<T, N, U1>, T: std::ops::Mul<Output = T>,
-        Owned<T, N>: Copy,
-{
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self {
-        Self {
-            a: self.a * rhs.a,
-            v: self.a * rhs.v + self.v * rhs.a,
-        }
-    }
-}
-*/
 
 impl<T: Scalar, N: DimName> ops::Add for Jet<T, N>
     where
-        DefaultAllocator: Allocator<T, N, U1>, T: std::ops::Add<Output = T>,
-        Owned<T, N>: Copy,
+        DefaultAllocator: Allocator<T, N, U1>,
+        T: std::ops::Add<Output = T> + Zero + One + ClosedAdd + ClosedMul,
+        Owned<T, N>: Copy,  // + ClosedAdd,
 {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
         Self {
             a: self.a + rhs.a,
-            v: self.v, // + rhs.v,
+            v: self.v + rhs.v,
         }
     }
 }
