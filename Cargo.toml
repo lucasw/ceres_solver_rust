@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 cxx = "1.0"
+nalgebra = "0.24.1"
 
 [build-dependencies]
 cxx-build = "1.0"
