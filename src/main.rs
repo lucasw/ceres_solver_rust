@@ -29,16 +29,17 @@ mod ffi {
 
         fn new_ceres_example() -> UniquePtr<CeresExample>;
 
-        // fn run<T>(&self, vals: &Vec<T>);
+        // These can't be anything but &Vec because of cxx limitations
+        #[allow(clippy::ptr_arg)]
         fn run_numeric(&self, vals: &Vec<f64>);
+        #[allow(clippy::ptr_arg)]
         fn run_auto(&self, vals: &Vec<f64>);
     }
 }
 
 pub fn evaluate(val: f64) -> f64 {
     let target = 15.31;
-    let residual = target - val;
-    residual
+    target - val
 }
 
 pub fn evaluate_raw_jet(
