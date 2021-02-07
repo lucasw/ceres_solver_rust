@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Lucas Walter <wsacul@gmail.com>"]
 edition = "2018"
 
+# [profile-dev]
+# opt-level = 3
+
 [dependencies]
 cxx = "1.0"
 nalgebra = "0.24.1"

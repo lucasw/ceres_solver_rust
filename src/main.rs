@@ -1,9 +1,11 @@
-// use cxx::CxxVector;
+// Lucas Walter
+// 2020-2021
 
 mod jet;
 
 use jet::Jet;
 use nalgebra::U1;
+use std::time::{Duration, Instant};
 
 #[cxx::bridge(namespace = "org::ceres_example")]
 mod ffi {
@@ -11,7 +13,7 @@ mod ffi {
         // "extern function with generic parameters is not supported yet"
         // fn evaluate<T>(val: T) -> T;
         fn evaluate(val: f64) -> f64;
-        fn evaluate_raw_jet(val: f64, val_v: &[f64; 1], residual: &mut f64, residual_v: &mut [f64; 1]);
+        fn evaluate_raw_jet(val_a: f64, val_v: &[f64; 1], residual_a: &mut f64, residual_v: &mut [f64; 1]);
     }
 
     // C++ types and signatures exposed to Rust.
@@ -23,20 +25,24 @@ mod ffi {
         fn new_ceres_example() -> UniquePtr<CeresExample>;
 
         // fn run<T>(&self, vals: &Vec<T>);
-        fn run(&self, vals: &Vec<f64>);
+        fn run_numeric(&self, vals: &Vec<f64>);
+        fn run_auto(&self, vals: &Vec<f64>);
     }
 }
 
 pub fn evaluate(val: f64) -> f64 {
-    let residual = 15.31 - val;
+    let target = 15.31;
+    let residual = target - val;
     residual
 }
 
-pub fn evaluate_raw_jet(val: f64, val_v: &[f64; 1], residual: &mut f64, residual_v: &mut [f64; 1]) {
-    *residual = 15.31 - val;
-    *residual_v = *val_v;
-    residual_v[0] *= 0.9;
-    println!("rust x {}, {:?} -> residual {}, {:?}", val, val_v, residual, residual_v);
+pub fn evaluate_raw_jet(val_a: f64, val_v: &[f64; 1], residual_a: &mut f64, residual_v: &mut [f64; 1]) {
+    let target = Jet::new(15.31, 0.0, U1);
+    let val = Jet::from_vec(val_a, val_v, U1);
+    let residual = target - val;
+    *residual_a = residual.a;
+    *residual_v = residual.get_vec();
+    // println!("rust x {:?} -> residual {:?}", val, residual);
 }
 
 fn main() {
@@ -58,5 +64,14 @@ fn main() {
     let mut vals = Vec::new();
     vals.push(5.342);
     vals.push(8.0);
-    ceres_example.run(&vals);
+
+    // TODO(lucasw) these are too quick to measure accurately, also the first one to run goes
+    // slower
+    let start = Instant::now();
+    ceres_example.run_auto(&vals);
+    println!("elapsed {:?}", start.elapsed());
+
+    let start = Instant::now();
+    ceres_example.run_numeric(&vals);
+    println!("elapsed {:?}", start.elapsed());
 }

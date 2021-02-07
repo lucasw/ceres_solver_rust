@@ -58,12 +58,10 @@ class CeresExample::impl {
       // rust::Slice<double> residual_v{residual[0].v.data(), N};
       std::array<double, N>* residual_v = reinterpret_cast<std::array<double, N>*>(residual[0].v.data());
       evaluate_raw_jet(x[0].a, x_v, residual[0].a, *residual_v);
-      std::cout << "C++ val " << x[0] << " " << residual[0] << ", length " << N << "\n";
+      std::cout << "        C++ val " << x[0] << ", residual " << residual[0] << ", length " << N << "\n";
       return true;
     }
-
   };
-
 };
 
 CeresExample::CeresExample() : impl(new class CeresExample::impl) {
@@ -73,7 +71,7 @@ CeresExample::CeresExample() : impl(new class CeresExample::impl) {
 }
 
 // TODO(lucasw) move this into impl?
-void CeresExample::run(const rust::Vec<double>& vals) const {
+void CeresExample::run_numeric(const rust::Vec<double>& vals) const {
 // void CeresExample::run(const rust::Vec<T>& vals) const {
   // The variable to solve for with its initial value.
   // TODO(lucasw) pass in initial_x
@@ -88,48 +86,46 @@ void CeresExample::run(const rust::Vec<double>& vals) const {
 
   // presumably this is a little slower than autodifferentation for some problems
 
-
   // Build the problem.
   ceres::Problem problem;
-  {
-    double x = vals[0];
-    std::cout << "\nnumeric diff\n";
-    ceres::CostFunction* cost_function =
-        new ceres::NumericDiffCostFunction<CeresExample::impl::RustCostFunctor, ceres::FORWARD, 1, 1>(
-            new CeresExample::impl::RustCostFunctor);
+  double x = vals[0];
+  std::cout << "\nnumeric diff\n";
+  ceres::CostFunction* cost_function =
+      new ceres::NumericDiffCostFunction<CeresExample::impl::RustCostFunctor, ceres::FORWARD, 1, 1>(
+          new CeresExample::impl::RustCostFunctor);
 
-    problem.AddResidualBlock(cost_function, nullptr, &x);
+  problem.AddResidualBlock(cost_function, nullptr, &x);
 
-    ceres::Solver::Options options;
-    options.linear_solver_type = ceres::DENSE_QR;
-    options.minimizer_progress_to_stdout = true;
-    ceres::Solver::Summary summary;
-    ceres::Solve(options, &problem, &summary);
+  ceres::Solver::Options options;
+  options.linear_solver_type = ceres::DENSE_QR;
+  options.minimizer_progress_to_stdout = true;
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, &problem, &summary);
 
-    std::cout << summary.BriefReport() << "\n";
-    std::cout << "x : " << vals[0]
-              << " -> " << x << "\n";
-  }
+  std::cout << summary.BriefReport() << "\n";
+  std::cout << "x : " << vals[0]
+            << " -> " << x << "\n";
+}
 
-  {
-    double x = vals[0];
-    std::cout << "\nauto diff\n";
-    ceres::CostFunction* cost_function =
-        new ceres::AutoDiffCostFunction<CeresExample::impl::RustCostFunctor, 1, 1>(
-            new CeresExample::impl::RustCostFunctor);
+void CeresExample::run_auto(const rust::Vec<double>& vals) const {
+  ceres::Problem problem;
+  double x = vals[0];
+  std::cout << "\nauto diff\n";
+  ceres::CostFunction* cost_function =
+      new ceres::AutoDiffCostFunction<CeresExample::impl::RustCostFunctor, 1, 1>(
+          new CeresExample::impl::RustCostFunctor);
 
-    problem.AddResidualBlock(cost_function, nullptr, &x);
+  problem.AddResidualBlock(cost_function, nullptr, &x);
 
-    ceres::Solver::Options options;
-    options.linear_solver_type = ceres::DENSE_QR;
-    options.minimizer_progress_to_stdout = true;
-    ceres::Solver::Summary summary;
-    ceres::Solve(options, &problem, &summary);
+  ceres::Solver::Options options;
+  options.linear_solver_type = ceres::DENSE_QR;
+  options.minimizer_progress_to_stdout = true;
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, &problem, &summary);
 
-    std::cout << summary.BriefReport() << "\n";
-    std::cout << "x : " << vals[0]
-              << " -> " << x << "\n";
-  }
+  std::cout << summary.BriefReport() << "\n";
+  std::cout << "x : " << vals[0]
+            << " -> " << x << "\n";
 }
 
 std::unique_ptr<CeresExample> new_ceres_example() {

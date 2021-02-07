@@ -163,7 +163,7 @@ use std::fmt::Debug;
 use std::ops;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Jet<T: Scalar + Zero + One + ClosedAdd + ClosedMul, N: DimName>
+pub struct Jet<T: Scalar + Zero + One + ClosedAdd + ClosedSub + ClosedMul, N: DimName>
     where DefaultAllocator: Allocator<T, N, U1>,
     Owned<T, N>: Copy,
 {
@@ -174,18 +174,31 @@ pub struct Jet<T: Scalar + Zero + One + ClosedAdd + ClosedMul, N: DimName>
     pub v: MatrixMN<T, N, U1>,
 }
 
-impl<T: Scalar + Scalar + Zero + One + ClosedAdd, N: DimName> Jet<T, N>
+impl<T: Scalar + Scalar + Zero + One + ClosedAdd + ClosedSub, N: DimName> Jet<T, N>
     where
         DefaultAllocator: Allocator<T, N, U1>,
         Owned<T, N>: Copy,
-        T: ops::MulAssign,
+        T: Copy + ops::MulAssign,
 {
-    pub fn new(default_val: T, v_val: T, n: N) -> Jet<T, N>
+    pub fn new(a_val: T, v_val: T, n: N) -> Jet<T, N>
     {
         Jet {
-            a: default_val,
-            v: MatrixMN::repeat_generic(n, U1, v_val)
+            a: a_val,
+            v: MatrixMN::repeat_generic(n, U1, v_val),
         }
+    }
+
+    pub fn from_vec(a_val: T, v_val: &[T], n: N) -> Jet<T, N>
+    {
+        Jet {
+            a: a_val,
+            v: MatrixMN::from_vec_generic(n, U1, v_val.to_vec()),
+        }
+    }
+
+    // TODO(lucasw) how to get array of size N?
+    pub fn get_vec(&self) -> [T; 1] {
+        [self.v[(0, 0)]]
     }
 }
 
@@ -193,8 +206,8 @@ impl<T: Scalar + Scalar + Zero + One + ClosedAdd, N: DimName> Jet<T, N>
 impl<T: Scalar + ClosedMul + Copy, N: DimName> ops::Mul for Jet<T, N>
     where
         DefaultAllocator: Allocator<T, N, U1>,
-        T: std::ops::Mul<Output = T> + Zero + One + ClosedAdd + ClosedMul,
-        Owned<T, N>: Copy,  // + ClosedAdd,
+        T: std::ops::Mul<Output = T> + Zero + One + ClosedAdd + ClosedSub + ClosedMul,
+        Owned<T, N>: Copy,
 {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
@@ -208,14 +221,29 @@ impl<T: Scalar + ClosedMul + Copy, N: DimName> ops::Mul for Jet<T, N>
 impl<T: Scalar, N: DimName> ops::Add for Jet<T, N>
     where
         DefaultAllocator: Allocator<T, N, U1>,
-        T: std::ops::Add<Output = T> + Zero + One + ClosedAdd + ClosedMul,
-        Owned<T, N>: Copy,  // + ClosedAdd,
+        T: std::ops::Add<Output = T> + Zero + One + ClosedAdd + ClosedSub + ClosedMul,
+        Owned<T, N>: Copy,
 {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
         Self {
             a: self.a + rhs.a,
             v: self.v + rhs.v,
+        }
+    }
+}
+
+impl<T: Scalar, N: DimName> ops::Sub for Jet<T, N>
+    where
+        DefaultAllocator: Allocator<T, N, U1>,
+        T: std::ops::Sub<Output = T> + Zero + One + ClosedAdd + ClosedSub + ClosedMul,
+        Owned<T, N>: Copy,
+{
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        Self {
+            a: self.a - rhs.a,
+            v: self.v - rhs.v,
         }
     }
 }

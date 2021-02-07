@@ -10,7 +10,8 @@ class CeresExample {
 public:
   CeresExample();
 
-  void run(const rust::Vec<double>& vals) const;
+  void run_numeric(const rust::Vec<double>& vals) const;
+  void run_auto(const rust::Vec<double>& vals) const;
 
 private:
   class impl;
