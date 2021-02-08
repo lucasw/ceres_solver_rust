@@ -12,8 +12,6 @@
 namespace org {
 namespace ceres_example {
 
-// Toy implementation of an in-memory ceres_example.
-//
 class CeresExample::impl {
   friend CeresExample;
 
@@ -25,7 +23,6 @@ class CeresExample::impl {
       }
   };
 
-  // TODO(lucasw) not sure how to do autodiff with rust yet, so try numeric diff first
   using RustCostFunctor = struct {
     template <typename T>
     bool operator()(const T* const x, T* residual) const {
@@ -47,15 +44,13 @@ class CeresExample::impl {
       return true;
     }
 
-    // template <typename T, int N>
-    // bool operator()(const ceres::Jet<T, N>* const x, ceres::Jet<T, N>* residual) const {
     template <int N>
     bool operator()(const ceres::Jet<double, N>* const x, ceres::Jet<double, N>* residual) const {
       // residual[0].a = evaluate(x[0].a);
       // evaluate_raw_jet(N, x[0].a, x[0].v.data(), residual[0].a, residual[0].v.data());
       // rust::Slice<const double> x_v{x[0].v.data(), N};
-      const std::array<double, N> x_v = *reinterpret_cast<const std::array<double, N>*>(x[0].v.data());
       // rust::Slice<double> residual_v{residual[0].v.data(), N};
+      const std::array<double, N> x_v = *reinterpret_cast<const std::array<double, N>*>(x[0].v.data());
       std::array<double, N>* residual_v = reinterpret_cast<std::array<double, N>*>(residual[0].v.data());
       evaluate_raw_jet(x[0].a, x_v, residual[0].a, *residual_v);
       std::cout << "        C++ val " << x[0] << ", residual " << residual[0] << ", length " << N << "\n";
@@ -73,21 +68,13 @@ CeresExample::CeresExample() : impl(new class CeresExample::impl) {
 // TODO(lucasw) move this into impl?
 void CeresExample::run_numeric(const rust::Vec<double>& vals) const {
 // void CeresExample::run(const rust::Vec<T>& vals) const {
-  // The variable to solve for with its initial value.
-  // TODO(lucasw) pass in initial_x
-
-  // Set up the only cost function (also known as residual). This uses
-  // auto-differentiation to obtain the derivative (jacobian).
-  /*
-  ceres::CostFunction* cost_function =
-      new ceres::AutoDiffCostFunction<CeresExample::impl::CostFunctor, 1, 1>(
-          new CeresExample::impl::CostFunctor);
-*/
 
   // presumably this is a little slower than autodifferentation for some problems
 
   // Build the problem.
   ceres::Problem problem;
+  // The variable to solve for with its initial value.
+  // TODO(lucasw) pass in initial_x
   double x = vals[0];
   std::cout << "\nnumeric diff\n";
   ceres::CostFunction* cost_function =
@@ -132,5 +119,75 @@ std::unique_ptr<CeresExample> new_ceres_example() {
   return std::make_unique<CeresExample>();
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+#if 0
+struct TrajectoryCost {
+  TrajectoryCost(const WayPoint& start, const WayPoint& target) :
+    start_(start),
+    target_(target) {
+  }
+
+  template <int N>
+  bool operator() (
+      const ceres::Jet<double, N>* const jerk,
+      ceres::Jet<double, N>* residual) const {
+    const std::array<double, N> j0_v = *reinterpret_cast<const std::array<double, N>*>(jerk[0].v.data());
+    const std::array<double, N> j1_v = *reinterpret_cast<const std::array<double, N>*>(jerk[1].v.data());
+    const std::array<double, N> j2_v = *reinterpret_cast<const std::array<double, N>*>(jerk[2].v.data());
+    const std::array<double, N> j3_v = *reinterpret_cast<const std::array<double, N>*>(jerk[3].v.data());
+
+    // position, velocity, acceleration, jerk
+    std::array<double, N>* residual0_v = reinterpret_cast<std::array<double, N>*>(residual[0].v.data());
+    std::array<double, N>* residual1_v = reinterpret_cast<std::array<double, N>*>(residual[1].v.data());
+    std::array<double, N>* residual2_v = reinterpret_cast<std::array<double, N>*>(residual[2].v.data());
+    std::array<double, N>* residual3_v = reinterpret_cast<std::array<double, N>*>(residual[3].v.data());
+
+    evaluate_trajectory(
+        start_,
+        target_,
+        jerk[0].a, j0_v,
+        jerk[1].a, j1_v,
+        jerk[2].a, j2_v,
+        jerk[3].a, j3_v,
+        residual[0].a, *residual0_v,
+        residual[1].a, *residual1_v,
+        residual[2].a, *residual2_v,
+        residual[3].a, *residual3_v
+    );
+    // std::cout << "        C++ val " << x[0] << ", residual " << residual[0] << ", length " << N << "\n";
+    return true;
+  }
+
+  const WayPoint start_;
+  const WayPoint target_;
+  const size_t steps_ = 4;
+};
+
+void CeresExample::find_trajectory(const WayPoint& start, const WayPoint& target) const {
+  start_ = start;
+  target_ = target;
+
+  std::cout << " test";
+  // std::cout << start.time << " " <<  start.position << " " << start.velocity << "\n";
+  ceres::Problem problem;
+  std::cout << "\nauto diff\n";
+  ceres::CostFunction* cost_function =
+      new ceres::AutoDiffCostFunction<TrajectoryCost::RustCostFunctor, 4, 4>(
+          new TrajectoryCost(start, target));
+
+  problem.AddResidualBlock(cost_function, nullptr, &x);
+
+  ceres::Solver::Options options;
+  options.linear_solver_type = ceres::DENSE_QR;
+  options.minimizer_progress_to_stdout = true;
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, &problem, &summary);
+
+  std::cout << summary.BriefReport() << "\n";
+  std::cout << "x : " << vals[0]
+            << " -> " << x << "\n";
+}
+#endif
 } // namespace ceres_example
 } // namespace org

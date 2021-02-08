@@ -4,12 +4,15 @@
 mod jet;
 mod trajectory;
 
+use cxx::UniquePtr;
 use jet::Jet;
 use nalgebra::U1;
 use std::time::Instant;
+use trajectory::WayPoint;
 
 #[cxx::bridge(namespace = "org::ceres_example")]
 mod ffi {
+    // rust to expose to C++
     extern "Rust" {
         // "extern function with generic parameters is not supported yet"
         // fn evaluate<T>(val: T) -> T;
@@ -20,6 +23,31 @@ mod ffi {
             residual_a: &mut f64,
             residual_v: &mut [f64; 1],
         );
+
+        /*
+        fn evaluate_trajectory(
+            start: &WayPoint,
+            target: &WayPoint,
+            j0_a: f64,
+            j0_v: &[f64; 1],
+            j1_a: f64,
+            j1_v: &[f64; 1],
+            j2_a: f64,
+            j2_v: &[f64; 1],
+            j3_a: f64,
+            j3_v: &[f64; 1],
+            residual0_a: &mut f64,
+            residual0_v: &mut [f64; 1],
+            residual1_a: &mut f64,
+            residual1_v: &mut [f64; 1],
+            residual2_a: &mut f64,
+            residual2_v: &mut [f64; 1],
+            residual3_a: &mut f64,
+            residual3_v: &mut [f64; 1],
+        );
+        */
+
+        type WayPoint;
     }
 
     // C++ types and signatures exposed to Rust.
@@ -35,6 +63,9 @@ mod ffi {
         fn run_numeric(&self, vals: &Vec<f64>);
         #[allow(clippy::ptr_arg)]
         fn run_auto(&self, vals: &Vec<f64>);
+
+        // TODO(lucasw) need to return the solution
+        // fn find_trajectory(&self, start: &WayPoint, target: &WayPoint);
     }
 }
 
@@ -57,7 +88,7 @@ pub fn evaluate_raw_jet(
     // println!("rust x {:?} -> residual {:?}", val, residual);
 }
 
-fn simple_example() {
+fn simple_example(ceres_example: &cxx::UniquePtr<ffi::CeresExample>) {
     let j0 = Jet::new(2.5, 0.1, U1);
     println!("jet {:?}", j0);
 
@@ -70,7 +101,6 @@ fn simple_example() {
     let j3 = j1 * j0;
     println!("jet op {:?} * {:?} = {:?}", j1, j0, j3);
 
-    let ceres_example = ffi::new_ceres_example();
     // is it possible to create a CxxVector on the rust side?  There isn't a CxxVector::new()
     // let vals = CxxVector;  // ::<f64>();
     let mut vals = Vec::new();
@@ -89,7 +119,29 @@ fn simple_example() {
 }
 
 fn main() {
-    // simple_example();
+    /*
+    let ceres_example = ffi::new_ceres_example();
+
+    simple_example(&ceres_example);
+
+    let start = trajectory::WayPoint {
+        time: 0.0,
+        position: 1.0,
+        velocity: -1.0,
+        acceleration: 0.5,
+        jerk: 0.0,
+    };
+
+    let target = trajectory::WayPoint {
+        time: 1.0,
+        position: 4.0,
+        velocity: 0.0,
+        acceleration: 0.0,
+        jerk: 0.0,
+    };
+
+    ceres_example.find_trajectory(&start, &target);
+*/
 
     trajectory::test_generate();
 }
